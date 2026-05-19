@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import JobSetup from "./pages/JobSetup.jsx";
 import Payroll from "./pages/Payroll.jsx";
 import WorkLogs from "./pages/WorkLogs.jsx";
+import { getHealth } from "./api/client.js";
 import { createDefaultState, loadState, saveState, STORAGE_KEY } from "./utils/storage.js";
 import { getSetupChecks } from "./utils/payroll.js";
 
@@ -19,6 +20,40 @@ const views = {
 
 export default function App() {
   const [state, setState] = useState(loadState);
+  const [health, setHealth] = useState({
+    status: "checking",
+    service: "",
+    message: "BE 연결 확인 중",
+  });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 3000);
+
+    getHealth({ signal: controller.signal })
+      .then((data) => {
+        setHealth({
+          status: "connected",
+          service: data.service || "BE",
+          message: "BE 연결됨",
+        });
+      })
+      .catch(() => {
+        setHealth({
+          status: "disconnected",
+          service: "",
+          message: "BE 연결 실패",
+        });
+      })
+      .finally(() => {
+        window.clearTimeout(timeoutId);
+      });
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, []);
 
   useEffect(() => {
     saveState(state);
@@ -62,7 +97,7 @@ export default function App() {
     <div className="app-shell">
       <Sidebar currentView={state.currentView} views={views} onSwitchView={switchView} />
       <main className="main-panel">
-        <Topbar title={views[state.currentView]} onReset={resetDemo} />
+        <Topbar health={health} title={views[state.currentView]} onReset={resetDemo} />
 
         {state.currentView === "dashboard" && (
           <Dashboard job={state.job} logs={state.logs} setupChecks={setupChecks} />
