@@ -23,11 +23,11 @@ npm run build
 - BE health check 연결 상태 표시
 - 알바 시작 전 근무 조건 입력 및 jobs API 저장/조회
 - 계약서, 최저임금, 주휴수당, 휴게시간 체크리스트
-- 날짜별 출퇴근 기록 저장
+- 날짜별 출퇴근 기록 입력 및 work-logs API 저장/조회/삭제
 - 월별 예상 급여와 실제 입금액 비교
 - 계약서/급여/퇴사 질문에 대한 챗봇 응답 프로토타입
 
-근무 조건은 BE `jobs` API에 우선 저장합니다. BE 연결 실패 시에는 브라우저 저장소인 `localStorage`를 fallback으로 사용하므로 입력 흐름은 유지됩니다.
+근무 조건은 BE `jobs` API에, 근무 기록은 BE `work-logs` API에 우선 저장합니다. BE 연결 실패 시에는 브라우저 저장소인 `localStorage`를 fallback으로 사용하므로 입력 흐름은 유지됩니다.
 
 ## 코드 구조
 
