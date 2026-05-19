@@ -1,13 +1,20 @@
 # 알바권리 AI FE Prototype
 
-아르바이트를 처음 시작하는 사용자가 근무 조건을 저장하고, 출퇴근 기록과 예상 급여를 확인하며, 계약서/급여/퇴사 상황에 대한 상담 초안을 볼 수 있는 정적 프론트엔드 프로토타입입니다.
+아르바이트를 처음 시작하는 사용자가 근무 조건을 저장하고, 출퇴근 기록과 예상 급여를 확인하며, 계약서/급여/퇴사 상황에 대한 상담 초안을 볼 수 있는 React/Vite 프론트엔드 프로토타입입니다.
 
 ## 실행
 
-별도 설치 없이 아래 파일을 브라우저에서 열면 됩니다.
+```powershell
+cd FE
+npm install
+npm run dev
+```
 
-```text
-C:\Users\kdj41\OneDrive\Tài liệu\FinalProject\FE\index.html
+빌드 검증은 아래 명령을 사용합니다.
+
+```powershell
+cd FE
+npm run build
 ```
 
 ## 현재 구현 범위
@@ -20,6 +27,15 @@ C:\Users\kdj41\OneDrive\Tài liệu\FinalProject\FE\index.html
 - 계약서/급여/퇴사 질문에 대한 챗봇 응답 프로토타입
 
 브라우저 저장소인 `localStorage`를 사용하므로 새로고침해도 입력값이 유지됩니다.
+
+## 코드 구조
+
+```text
+FE/src/
+  components/  공통 UI
+  pages/       화면 단위 컴포넌트
+  utils/       급여 계산, 저장소, 챗봇 응답 로직
+```
 
 ## 참고 데이터
 
