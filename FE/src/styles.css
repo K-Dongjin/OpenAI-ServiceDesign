@@ -147,10 +147,6 @@ h2 {
 }
 
 .view {
-  display: none;
-}
-
-.view.active {
   display: block;
 }
 
