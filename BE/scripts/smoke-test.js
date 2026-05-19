@@ -53,6 +53,19 @@ try {
   });
   assert(job.id, "created job should include id");
 
+  const updatedJob = await request(baseUrl, `/api/v1/jobs/${job.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      hourlyWage: 11000,
+      contractStatus: "signed",
+    }),
+  });
+  assert(updatedJob.hourlyWage === 11000, "updated job should include patched hourly wage");
+  assert(updatedJob.contractStatus === "signed", "updated job should include patched contract status");
+
+  const fetchedJob = await request(baseUrl, `/api/v1/jobs/${job.id}`);
+  assert(fetchedJob.id === job.id, "single job lookup should return created job");
+
   const jobs = await request(baseUrl, "/api/v1/jobs");
   assert(jobs.jobs.length === 1, "jobs list should include created job");
 
@@ -69,7 +82,7 @@ try {
   assert(log.workedHours === 5, "work log should calculate workedHours");
 
   const payroll = await request(baseUrl, `/api/v1/jobs/${job.id}/payroll?month=2026-05&actualPaid=50000`);
-  assert(payroll.expectedPay === 51600, "payroll should calculate expected pay");
+  assert(payroll.expectedPay === 55000, "payroll should calculate expected pay");
 
   const checks = await request(baseUrl, `/api/v1/jobs/${job.id}/checks`);
   assert(checks.checks.length > 0, "checks should not be empty");

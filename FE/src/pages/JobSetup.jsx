@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import CheckList from "../components/CheckList.jsx";
 import { MINIMUM_WAGE_2026 } from "../utils/payroll.js";
 
-export default function JobSetup({ job, checks, onSave }) {
+export default function JobSetup({ job, checks, jobSync, onSave }) {
   const [draft, setDraft] = useState(job);
+  const isSaving = jobSync?.status === "saving";
 
   useEffect(() => {
     setDraft(job);
@@ -13,9 +14,9 @@ export default function JobSetup({ job, checks, onSave }) {
     setDraft((current) => ({ ...current, [field]: value }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    onSave({
+    await onSave({
       workplace: draft.workplace.trim(),
       hourlyWage: Number(draft.hourlyWage) || 0,
       minimumWage: Number(draft.minimumWage) || MINIMUM_WAGE_2026,
@@ -125,9 +126,14 @@ export default function JobSetup({ job, checks, onSave }) {
           />
           시급에 주휴수당 포함이라고 안내받음
         </label>
+        {jobSync?.message && (
+          <p className={`sync-note ${jobSync.status}`} role={jobSync.status === "error" ? "alert" : "status"}>
+            {jobSync.message}
+          </p>
+        )}
         <div className="form-actions">
-          <button className="primary-button" type="submit">
-            저장
+          <button className="primary-button" disabled={isSaving} type="submit">
+            {isSaving ? "저장 중" : "저장"}
           </button>
         </div>
       </form>

@@ -408,6 +408,27 @@ select:focus {
   min-height: auto;
 }
 
+.sync-note {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.sync-note.saved {
+  color: var(--ok);
+}
+
+.sync-note.saving,
+.sync-note.loading {
+  color: var(--warning);
+}
+
+.sync-note.error,
+.sync-note.offline {
+  color: var(--danger);
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -430,6 +451,11 @@ select:focus {
 
 .primary-button:hover {
   background: var(--accent-dark);
+}
+
+.primary-button:disabled {
+  opacity: 0.62;
+  cursor: wait;
 }
 
 .ghost-button,
