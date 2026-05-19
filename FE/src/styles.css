@@ -119,6 +119,54 @@ button {
   margin-bottom: 24px;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.health-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+.health-badge.connected {
+  color: var(--ok);
+}
+
+.health-badge.connected .health-dot {
+  background: var(--ok);
+}
+
+.health-badge.disconnected {
+  color: var(--danger);
+}
+
+.health-badge.disconnected .health-dot {
+  background: var(--danger);
+}
+
+.health-badge.checking .health-dot {
+  background: var(--warning);
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: var(--accent-dark);
@@ -573,6 +621,11 @@ td {
   .topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .nav-tabs {
