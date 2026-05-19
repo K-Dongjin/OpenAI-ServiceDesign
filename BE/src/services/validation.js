@@ -8,6 +8,15 @@ export function assert(condition, field, message) {
   }
 }
 
+function validateObjectPayload(payload) {
+  assert(
+    payload && typeof payload === "object" && !Array.isArray(payload),
+    "body",
+    "요청 본문은 JSON 객체여야 합니다.",
+  );
+  return payload;
+}
+
 export function validateDate(value, field) {
   assert(typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value), field, "날짜는 YYYY-MM-DD 형식이어야 합니다.");
 }
@@ -21,6 +30,7 @@ export function validateTime(value, field) {
 }
 
 export function validateJobPayload(payload, { partial = false } = {}) {
+  payload = validateObjectPayload(payload);
   const data = {};
 
   if (!partial || "workplace" in payload) {
@@ -57,6 +67,10 @@ export function validateJobPayload(payload, { partial = false } = {}) {
   }
   if (!partial || "weeklyIncluded" in payload) {
     data.weeklyIncluded = Boolean(payload.weeklyIncluded);
+  }
+
+  if (partial) {
+    assert(Object.keys(data).length > 0, "body", "수정할 근무 조건을 하나 이상 입력하세요.");
   }
 
   return data;
