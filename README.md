@@ -27,3 +27,13 @@ npm run build
 ```
 
 상세 구현 범위는 `docs/FE_PROTOTYPE.md`에 정리했습니다.
+
+## BE 실행
+
+```powershell
+cd BE
+npm install
+npm run dev
+```
+
+API 계약은 `docs/API.md`에 정리했습니다.
