@@ -6,7 +6,16 @@ import Dashboard from "./pages/Dashboard.jsx";
 import JobSetup from "./pages/JobSetup.jsx";
 import Payroll from "./pages/Payroll.jsx";
 import WorkLogs from "./pages/WorkLogs.jsx";
-import { createJob, deleteJob, getHealth, listJobs, updateJob as updateJobRequest } from "./api/client.js";
+import {
+  createJob,
+  createWorkLog,
+  deleteJob,
+  deleteWorkLog,
+  getHealth,
+  listJobs,
+  listWorkLogs,
+  updateJob as updateJobRequest,
+} from "./api/client.js";
 import { createDefaultState, loadState, saveState, STORAGE_KEY } from "./utils/storage.js";
 import { getSetupChecks } from "./utils/payroll.js";
 
@@ -40,6 +49,20 @@ function toJobPayload(job) {
   };
 }
 
+function createLocalId(prefix) {
+  return `${prefix}_${crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(16).slice(2)}`}`;
+}
+
+function toWorkLogPayload(log) {
+  return {
+    date: log.date,
+    clockIn: log.clockIn,
+    clockOut: log.clockOut,
+    breakMinutes: Number(log.breakMinutes) || 0,
+    memo: (log.memo || "").trim(),
+  };
+}
+
 export default function App() {
   const [state, setState] = useState(loadState);
   const [health, setHealth] = useState({
@@ -50,6 +73,10 @@ export default function App() {
   const [jobSync, setJobSync] = useState({
     status: "idle",
     message: "근무 조건은 브라우저에 임시 저장됩니다.",
+  });
+  const [logSync, setLogSync] = useState({
+    status: "idle",
+    message: "근무 기록은 브라우저에 임시 저장됩니다.",
   });
 
   useEffect(() => {
@@ -113,6 +140,37 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!state.job.id) {
+      setLogSync({ status: "idle", message: "근무 조건을 먼저 저장하면 BE에 근무 기록을 저장할 수 있습니다." });
+      return;
+    }
+
+    const controller = new AbortController();
+    setLogSync({ status: "loading", message: "BE에서 근무 기록을 불러오는 중입니다." });
+
+    listWorkLogs(state.job.id, { signal: controller.signal })
+      .then(({ logs }) => {
+        setState((current) => {
+          const localLogs = current.logs.filter((log) => String(log.id).startsWith("local_log"));
+          return { ...current, logs: [...logs, ...localLogs] };
+        });
+        setLogSync({ status: "saved", message: "BE에서 근무 기록을 불러왔습니다." });
+      })
+      .catch((error) => {
+        if (error.name === "AbortError") return;
+        const message =
+          error.status === 404
+            ? "BE에 근무 조건이 없습니다. 근무 조건을 다시 저장하면 기록을 연동합니다."
+            : "BE 연결 실패. 브라우저 임시 저장을 사용합니다.";
+        setLogSync({ status: error.status === 404 ? "error" : "offline", message });
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [state.job.id]);
+
   const setupChecks = useMemo(() => getSetupChecks(state.job), [state.job]);
 
   const updateJob = async (job) => {
@@ -139,15 +197,73 @@ export default function App() {
     }
   };
 
-  const addLog = (log) => {
-    setState((current) => ({ ...current, logs: [...current.logs, log] }));
+  const addLog = async (log) => {
+    const payload = toWorkLogPayload(log);
+
+    if (!state.job.id) {
+      setState((current) => ({
+        ...current,
+        logs: [...current.logs, { id: createLocalId("local_log"), ...payload }],
+      }));
+      setLogSync({ status: "offline", message: "근무 조건 저장 전이라 브라우저에만 기록했습니다." });
+      return true;
+    }
+
+    setLogSync({ status: "saving", message: "BE에 근무 기록을 저장하는 중입니다." });
+
+    try {
+      const savedLog = await createWorkLog(state.job.id, payload);
+      setState((current) => ({ ...current, logs: [...current.logs, savedLog] }));
+      setLogSync({ status: "saved", message: "BE에 근무 기록을 저장했습니다." });
+      return true;
+    } catch (error) {
+      if (error.status === 400) {
+        setLogSync({ status: "error", message: error.message });
+        return false;
+      }
+
+      setState((current) => ({
+        ...current,
+        logs: [...current.logs, { id: createLocalId("local_log"), ...payload }],
+      }));
+      setLogSync({ status: "offline", message: "BE 저장 실패. 브라우저 임시 저장을 사용합니다." });
+      return true;
+    }
   };
 
-  const deleteLog = (id) => {
-    setState((current) => ({
-      ...current,
-      logs: current.logs.filter((log) => log.id !== id),
-    }));
+  const deleteLog = async (id) => {
+    const currentLog = state.logs.find((log) => log.id === id);
+    if (!currentLog) return;
+
+    if (!state.job.id || id.startsWith("local_log")) {
+      setState((current) => ({
+        ...current,
+        logs: current.logs.filter((log) => log.id !== id),
+      }));
+      setLogSync({ status: "idle", message: "브라우저 임시 기록을 삭제했습니다." });
+      return;
+    }
+
+    setLogSync({ status: "saving", message: "BE 근무 기록을 삭제하는 중입니다." });
+
+    try {
+      await deleteWorkLog(id);
+      setState((current) => ({
+        ...current,
+        logs: current.logs.filter((log) => log.id !== id),
+      }));
+      setLogSync({ status: "saved", message: "BE 근무 기록을 삭제했습니다." });
+    } catch (error) {
+      if (error.status === 404) {
+        setState((current) => ({
+          ...current,
+          logs: current.logs.filter((log) => log.id !== id),
+        }));
+        setLogSync({ status: "idle", message: "이미 삭제된 근무 기록을 화면에서도 정리했습니다." });
+        return;
+      }
+      setLogSync({ status: "offline", message: "BE 삭제 실패. 근무 기록을 유지합니다." });
+    }
   };
 
   const updatePayroll = (payroll) => {
@@ -169,19 +285,24 @@ export default function App() {
 
     if (!jobId) {
       setJobSync({ status: "idle", message: "브라우저 입력값을 초기화했습니다." });
+      setLogSync({ status: "idle", message: "브라우저 근무 기록을 초기화했습니다." });
       return;
     }
 
     setJobSync({ status: "saving", message: "BE 근무 조건을 초기화하는 중입니다." });
+    setLogSync({ status: "saving", message: "BE 근무 기록을 초기화하는 중입니다." });
     try {
       await deleteJob(jobId);
       setJobSync({ status: "idle", message: "BE 근무 조건을 초기화했습니다." });
+      setLogSync({ status: "idle", message: "BE 근무 기록을 초기화했습니다." });
     } catch (error) {
       if (error.status === 404) {
         setJobSync({ status: "idle", message: "브라우저 입력값을 초기화했습니다." });
+        setLogSync({ status: "idle", message: "브라우저 근무 기록을 초기화했습니다." });
         return;
       }
       setJobSync({ status: "offline", message: "BE 초기화 실패. 브라우저 입력값만 초기화했습니다." });
+      setLogSync({ status: "offline", message: "BE 초기화 실패. 브라우저 근무 기록만 초기화했습니다." });
     }
   };
 
@@ -198,7 +319,7 @@ export default function App() {
           <JobSetup job={state.job} checks={setupChecks} jobSync={jobSync} onSave={updateJob} />
         )}
         {state.currentView === "logs" && (
-          <WorkLogs logs={state.logs} onAddLog={addLog} onDeleteLog={deleteLog} />
+          <WorkLogs job={state.job} logSync={logSync} logs={state.logs} onAddLog={addLog} onDeleteLog={deleteLog} />
         )}
         {state.currentView === "payroll" && (
           <Payroll job={state.job} logs={state.logs} payroll={state.payroll} onChange={updatePayroll} />

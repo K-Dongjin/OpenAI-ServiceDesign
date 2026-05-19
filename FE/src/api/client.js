@@ -26,6 +26,10 @@ function jobPath(jobId) {
   return `/api/v1/jobs/${encodeURIComponent(jobId)}`;
 }
 
+function workLogPath(logId) {
+  return `/api/v1/work-logs/${encodeURIComponent(logId)}`;
+}
+
 export async function getHealth({ signal } = {}) {
   return requestJson("/health", { signal });
 }
@@ -52,6 +56,34 @@ export async function updateJob(jobId, payload, { signal } = {}) {
 
 export async function deleteJob(jobId, { signal } = {}) {
   return requestJson(jobPath(jobId), {
+    method: "DELETE",
+    signal,
+  });
+}
+
+export async function listWorkLogs(jobId, { month, signal } = {}) {
+  const query = month ? `?month=${encodeURIComponent(month)}` : "";
+  return requestJson(`${jobPath(jobId)}/work-logs${query}`, { signal });
+}
+
+export async function createWorkLog(jobId, payload, { signal } = {}) {
+  return requestJson(`${jobPath(jobId)}/work-logs`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    signal,
+  });
+}
+
+export async function updateWorkLog(logId, payload, { signal } = {}) {
+  return requestJson(workLogPath(logId), {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+    signal,
+  });
+}
+
+export async function deleteWorkLog(logId, { signal } = {}) {
+  return requestJson(workLogPath(logId), {
     method: "DELETE",
     signal,
   });

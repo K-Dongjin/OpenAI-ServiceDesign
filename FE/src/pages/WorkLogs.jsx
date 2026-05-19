@@ -9,12 +9,9 @@ const initialForm = {
   memo: "",
 };
 
-function createId() {
-  return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-export default function WorkLogs({ logs, onAddLog, onDeleteLog }) {
+export default function WorkLogs({ job, logSync, logs, onAddLog, onDeleteLog }) {
   const [form, setForm] = useState(initialForm);
+  const isSaving = logSync?.status === "saving";
   const sortedLogs = [...logs].sort((a, b) => b.date.localeCompare(a.date));
   const totalHours = logs.reduce((sum, log) => sum + calculateLogHours(log), 0);
 
@@ -22,17 +19,18 @@ export default function WorkLogs({ logs, onAddLog, onDeleteLog }) {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    onAddLog({
-      id: createId(),
+    const saved = await onAddLog({
       date: form.date,
       clockIn: form.clockIn,
       clockOut: form.clockOut,
       breakMinutes: Number(form.breakMinutes) || 0,
       memo: form.memo.trim(),
     });
-    setForm(initialForm);
+    if (saved !== false) {
+      setForm(initialForm);
+    }
   };
 
   return (
@@ -85,9 +83,14 @@ export default function WorkLogs({ logs, onAddLog, onDeleteLog }) {
             />
           </label>
         </div>
+        {logSync?.message && (
+          <p className={`sync-note ${logSync.status}`} role={logSync.status === "error" ? "alert" : "status"}>
+            {logSync.message}
+          </p>
+        )}
         <div className="form-actions">
-          <button className="primary-button" type="submit">
-            기록 추가
+          <button className="primary-button" disabled={isSaving} type="submit">
+            {isSaving ? "저장 중" : job.id ? "BE에 기록 추가" : "기록 추가"}
           </button>
         </div>
       </form>
@@ -130,7 +133,12 @@ export default function WorkLogs({ logs, onAddLog, onDeleteLog }) {
                   <td>{formatHours(calculateLogHours(log))}</td>
                   <td>{log.memo || "-"}</td>
                   <td>
-                    <button className="delete-button" onClick={() => onDeleteLog(log.id)} type="button">
+                    <button
+                      className="delete-button"
+                      disabled={isSaving}
+                      onClick={() => onDeleteLog(log.id)}
+                      type="button"
+                    >
                       삭제
                     </button>
                   </td>

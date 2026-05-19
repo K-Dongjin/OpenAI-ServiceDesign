@@ -81,6 +81,18 @@ try {
   });
   assert(log.workedHours === 5, "work log should calculate workedHours");
 
+  const updatedLog = await request(baseUrl, `/api/v1/work-logs/${log.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      memo: "30분 연장 확인",
+    }),
+  });
+  assert(updatedLog.memo === "30분 연장 확인", "updated work log should include patched memo");
+
+  const workLogs = await request(baseUrl, `/api/v1/jobs/${job.id}/work-logs?month=2026-05`);
+  assert(workLogs.logs.length === 1, "work log list should include created log");
+  assert(workLogs.totalHours === 5, "work log list should include total hours");
+
   const payroll = await request(baseUrl, `/api/v1/jobs/${job.id}/payroll?month=2026-05&actualPaid=50000`);
   assert(payroll.expectedPay === 55000, "payroll should calculate expected pay");
 
@@ -99,6 +111,12 @@ try {
 
   const references = await request(baseUrl, "/api/v1/references/minimum-wages?year=2026");
   assert(references.items[0].hourlyWage === 10320, "minimum wage reference should include 2026 value");
+
+  await request(baseUrl, `/api/v1/work-logs/${log.id}`, {
+    method: "DELETE",
+  });
+  const emptyWorkLogs = await request(baseUrl, `/api/v1/jobs/${job.id}/work-logs?month=2026-05`);
+  assert(emptyWorkLogs.logs.length === 0, "deleted work log should not remain in list");
 
   console.log("BE smoke test passed");
 } finally {

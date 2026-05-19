@@ -77,6 +77,7 @@ export function validateJobPayload(payload, { partial = false } = {}) {
 }
 
 export function validateWorkLogPayload(payload, { partial = false } = {}) {
+  payload = validateObjectPayload(payload);
   const data = {};
 
   if (!partial || "date" in payload) {
@@ -97,6 +98,10 @@ export function validateWorkLogPayload(payload, { partial = false } = {}) {
   }
   if (!partial || "memo" in payload) {
     data.memo = typeof payload.memo === "string" ? payload.memo.trim() : "";
+  }
+
+  if (partial) {
+    assert(Object.keys(data).length > 0, "body", "수정할 근무 기록을 하나 이상 입력하세요.");
   }
 
   return data;
